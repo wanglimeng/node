@@ -135,7 +135,7 @@ class TyperTest : public TypedGraphTest {
           for (int x1 = lmin; x1 < lmin + width; x1++) {
             for (int x2 = rmin; x2 < rmin + width; x2++) {
               double result_value = opfun(x1, x2);
-              Type* result_type = Type::Constant(
+              Type* result_type = Type::NewConstant(
                   isolate()->factory()->NewNumber(result_value), zone());
               EXPECT_TRUE(result_type->Is(expected_type));
             }
@@ -156,7 +156,7 @@ class TyperTest : public TypedGraphTest {
         double x1 = RandomInt(r1->AsRange());
         double x2 = RandomInt(r2->AsRange());
         double result_value = opfun(x1, x2);
-        Type* result_type = Type::Constant(
+        Type* result_type = Type::NewConstant(
             isolate()->factory()->NewNumber(result_value), zone());
         EXPECT_TRUE(result_type->Is(expected_type));
       }
@@ -173,10 +173,10 @@ class TyperTest : public TypedGraphTest {
         double x1 = RandomInt(r1->AsRange());
         double x2 = RandomInt(r2->AsRange());
         bool result_value = opfun(x1, x2);
-        Type* result_type =
-            Type::Constant(result_value ? isolate()->factory()->true_value()
-                                        : isolate()->factory()->false_value(),
-                           zone());
+        Type* result_type = Type::NewConstant(
+            result_value ? isolate()->factory()->true_value()
+                         : isolate()->factory()->false_value(),
+            zone());
         EXPECT_TRUE(result_type->Is(expected_type));
       }
     }
@@ -192,7 +192,7 @@ class TyperTest : public TypedGraphTest {
         int32_t x1 = static_cast<int32_t>(RandomInt(r1->AsRange()));
         int32_t x2 = static_cast<int32_t>(RandomInt(r2->AsRange()));
         double result_value = opfun(x1, x2);
-        Type* result_type = Type::Constant(
+        Type* result_type = Type::NewConstant(
             isolate()->factory()->NewNumber(result_value), zone());
         EXPECT_TRUE(result_type->Is(expected_type));
       }
@@ -223,8 +223,8 @@ class TyperTest : public TypedGraphTest {
 
 namespace {
 
-int32_t shift_left(int32_t x, int32_t y) { return x << y; }
-int32_t shift_right(int32_t x, int32_t y) { return x >> y; }
+int32_t shift_left(int32_t x, int32_t y) { return x << (y & 0x1f); }
+int32_t shift_right(int32_t x, int32_t y) { return x >> (y & 0x1f); }
 int32_t bit_or(int32_t x, int32_t y) { return x | y; }
 int32_t bit_and(int32_t x, int32_t y) { return x & y; }
 int32_t bit_xor(int32_t x, int32_t y) { return x ^ y; }
@@ -265,27 +265,27 @@ TEST_F(TyperTest, TypeJSModulus) {
 
 
 TEST_F(TyperTest, TypeJSBitwiseOr) {
-  TestBinaryBitOp(javascript_.BitwiseOr(hints_), bit_or);
+  TestBinaryBitOp(javascript_.BitwiseOr(), bit_or);
 }
 
 
 TEST_F(TyperTest, TypeJSBitwiseAnd) {
-  TestBinaryBitOp(javascript_.BitwiseAnd(hints_), bit_and);
+  TestBinaryBitOp(javascript_.BitwiseAnd(), bit_and);
 }
 
 
 TEST_F(TyperTest, TypeJSBitwiseXor) {
-  TestBinaryBitOp(javascript_.BitwiseXor(hints_), bit_xor);
+  TestBinaryBitOp(javascript_.BitwiseXor(), bit_xor);
 }
 
 
 TEST_F(TyperTest, TypeJSShiftLeft) {
-  TestBinaryBitOp(javascript_.ShiftLeft(hints_), shift_left);
+  TestBinaryBitOp(javascript_.ShiftLeft(), shift_left);
 }
 
 
 TEST_F(TyperTest, TypeJSShiftRight) {
-  TestBinaryBitOp(javascript_.ShiftRight(hints_), shift_right);
+  TestBinaryBitOp(javascript_.ShiftRight(), shift_right);
 }
 
 
@@ -356,9 +356,9 @@ TEST_BINARY_MONOTONICITY(LessThanOrEqual)
 TEST_BINARY_MONOTONICITY(GreaterThanOrEqual)
 #undef TEST_BINARY_MONOTONICITY
 
-#define TEST_BINARY_MONOTONICITY(name)                                   \
-  TEST_F(TyperTest, Monotonicity_##name) {                               \
-    TestBinaryMonotonicity(javascript_.name(BinaryOperationHint::kAny)); \
+#define TEST_BINARY_MONOTONICITY(name)          \
+  TEST_F(TyperTest, Monotonicity_##name) {      \
+    TestBinaryMonotonicity(javascript_.name()); \
   }
 TEST_BINARY_MONOTONICITY(BitwiseOr)
 TEST_BINARY_MONOTONICITY(BitwiseXor)
@@ -366,26 +366,18 @@ TEST_BINARY_MONOTONICITY(BitwiseAnd)
 TEST_BINARY_MONOTONICITY(ShiftLeft)
 TEST_BINARY_MONOTONICITY(ShiftRight)
 TEST_BINARY_MONOTONICITY(ShiftRightLogical)
+#undef TEST_BINARY_MONOTONICITY
+
+#define TEST_BINARY_MONOTONICITY(name)                                   \
+  TEST_F(TyperTest, Monotonicity_##name) {                               \
+    TestBinaryMonotonicity(javascript_.name(BinaryOperationHint::kAny)); \
+  }
 TEST_BINARY_MONOTONICITY(Add)
 TEST_BINARY_MONOTONICITY(Subtract)
 TEST_BINARY_MONOTONICITY(Multiply)
 TEST_BINARY_MONOTONICITY(Divide)
 TEST_BINARY_MONOTONICITY(Modulus)
 #undef TEST_BINARY_MONOTONICITY
-
-
-//------------------------------------------------------------------------------
-// Regression tests
-
-
-TEST_F(TyperTest, TypeRegressInt32Constant) {
-  int values[] = {-5, 10};
-  for (auto i : values) {
-    Node* c = graph()->NewNode(common()->Int32Constant(i));
-    Type* type = NodeProperties::GetType(c);
-    EXPECT_TRUE(type->Is(NewRange(i, i)));
-  }
-}
 
 }  // namespace compiler
 }  // namespace internal
