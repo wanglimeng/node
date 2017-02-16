@@ -20,10 +20,14 @@ function write(funx, args, result, res) {
     );
   }
 
-  if (!/Int/.test(funx)) {
+  {
+    const error = /Int/.test(funx) ?
+      /^TypeError: "buffer" argument must be a Buffer or Uint8Array$/ :
+      /^TypeError: argument should be a Buffer$/;
+
     assert.throws(
       () => Buffer.alloc(9)[funx].apply(new Uint32Array(1), args),
-      /^TypeError: argument should be a Buffer$/
+      error
     );
   }
 
