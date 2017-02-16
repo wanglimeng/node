@@ -20,7 +20,6 @@ var GlobalArray = global.Array;
 var GlobalArrayBuffer = global.ArrayBuffer;
 var GlobalArrayBufferPrototype = GlobalArrayBuffer.prototype;
 var GlobalObject = global.Object;
-var InnerArrayCopyWithin;
 var InnerArrayEvery;
 var InnerArrayFill;
 var InnerArrayFilter;
@@ -41,7 +40,6 @@ var SpeciesConstructor;
 var ToPositiveInteger;
 var ToIndex;
 var iteratorSymbol = utils.ImportNow("iterator_symbol");
-var speciesSymbol = utils.ImportNow("species_symbol");
 var toStringTagSymbol = utils.ImportNow("to_string_tag_symbol");
 
 macro TYPED_ARRAYS(FUNCTION)
@@ -69,7 +67,6 @@ utils.Import(function(from) {
   ArrayValues = from.ArrayValues;
   GetIterator = from.GetIterator;
   GetMethod = from.GetMethod;
-  InnerArrayCopyWithin = from.InnerArrayCopyWithin;
   InnerArrayEvery = from.InnerArrayEvery;
   InnerArrayFill = from.InnerArrayFill;
   InnerArrayFilter = from.InnerArrayFilter;
@@ -164,8 +161,7 @@ function NAMEConstructByArrayBuffer(obj, buffer, byteOffset, length) {
     }
     newByteLength = bufferByteLength - offset;
     if (newByteLength < 0) {
-      throw %make_range_error(kInvalidTypedArrayAlignment,
-                           "byte length", "NAME", ELEMENT_SIZE);
+      throw %make_range_error(kInvalidOffset, offset);
     }
   } else {
     newByteLength = length * ELEMENT_SIZE;
@@ -260,7 +256,7 @@ function NAMEConstructor(arg1, arg2, arg3) {
       NAMEConstructByTypedArray(this, arg1);
     } else if (IS_RECEIVER(arg1)) {
       var iteratorFn = arg1[iteratorSymbol];
-      if (IS_UNDEFINED(iteratorFn) || iteratorFn === ArrayValues) {
+      if (IS_UNDEFINED(iteratorFn)) {
         NAMEConstructByArrayLike(this, arg1, arg1.length);
       } else {
         NAMEConstructByIterable(this, arg1, iteratorFn);
@@ -437,17 +433,6 @@ function TypedArrayGetToStringTag() {
   if (IS_UNDEFINED(name)) return;
   return name;
 }
-
-
-function TypedArrayCopyWithin(target, start, end) {
-  if (!IS_TYPEDARRAY(this)) throw %make_type_error(kNotTypedArray);
-
-  var length = %_TypedArrayGetLength(this);
-
-  // TODO(littledan): Replace with a memcpy for better performance
-  return InnerArrayCopyWithin(target, start, end, this, length);
-}
-%FunctionSetLength(TypedArrayCopyWithin, 2);
 
 
 // ES6 draft 05-05-15, section 22.2.3.7
@@ -844,16 +829,7 @@ function TypedArrayFrom(source, mapfn, thisArg) {
 
 // TODO(bmeurer): Migrate this to a proper builtin.
 function TypedArrayConstructor() {
-  if (IS_UNDEFINED(new.target)) {
-    throw %make_type_error(kConstructorNonCallable, "TypedArray");
-  }
-  if (new.target === GlobalTypedArray) {
-    throw %make_type_error(kConstructAbstractClass, "TypedArray");
-  }
-}
-
-function TypedArraySpecies() {
-  return this;
+  throw %make_type_error(kConstructAbstractClass, "TypedArray");
 }
 
 // -------------------------------------------------------------------
@@ -863,13 +839,11 @@ utils.InstallFunctions(GlobalTypedArray, DONT_ENUM, [
   "from", TypedArrayFrom,
   "of", TypedArrayOf
 ]);
-utils.InstallGetter(GlobalTypedArray, speciesSymbol, TypedArraySpecies);
 utils.InstallGetter(GlobalTypedArray.prototype, toStringTagSymbol,
                     TypedArrayGetToStringTag);
 utils.InstallFunctions(GlobalTypedArray.prototype, DONT_ENUM, [
   "subarray", TypedArraySubArray,
   "set", TypedArraySet,
-  "copyWithin", TypedArrayCopyWithin,
   "every", TypedArrayEvery,
   "fill", TypedArrayFill,
   "filter", TypedArrayFilter,

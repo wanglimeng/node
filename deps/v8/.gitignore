@@ -54,7 +54,6 @@ shell_g
 /test/promises-aplus/promises-tests
 /test/promises-aplus/promises-tests.tar.gz
 /test/promises-aplus/sinon
-/test/simdjs/data
 /test/test262/data
 /test/test262/data.tar
 /test/test262/harness
@@ -65,17 +64,9 @@ shell_g
 !/testing/gtest/include/gtest
 /testing/gtest/include/gtest/*
 !/testing/gtest/include/gtest/gtest_prod.h
-/third_party
-/third_party/android_tools
-/third_party/cygwin
-/third_party/icu
-/third_party/instrumented_libraries
-/third_party/inspector_protocol
-/third_party/jinga2
-/third_party/llvm
-/third_party/llvm-build
-/third_party/markupsafe
-/third_party/WebKit
+/third_party/*
+!/third_party/binutils
+!/third_party/inspector_protocol
 /tools/clang
 /tools/gcmole/gcmole-tools
 /tools/gcmole/gcmole-tools.tar.gz
@@ -110,3 +101,6 @@ v8.ignition_dispatches_table.json
 /test/fuzzer/wasm_asmjs.tar.gz
 /src/inspector/build/closure-compiler.tar.gz
 /src/inspector/build/closure-compiler
+/test/wasm-js
+!/third_party/jinja2
+!/third_party/markupsafe
